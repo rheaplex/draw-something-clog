@@ -51,7 +51,16 @@
   (path-stroke cx))
 
 (defun on-new-window (body)
-  (setf (title    (html-document body)) "draw-something")
+  (setf (title (html-document body)) "draw-something")
+  (set-styles body
+              '(("border" 0)
+                ("margin" 0)
+                ("padding" 0)
+                ("cursor" "none")
+                ("height" "100vh")
+                ("display" "flex")
+                ("align-items" "center")
+                ("justify-content" "center")))
   (let* ((canvas  (create-canvas body :width 1280 :height 768))
          (cx      (create-context2d canvas))
          (drawing (ds:draw-something)))
