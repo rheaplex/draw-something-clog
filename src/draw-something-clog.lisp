@@ -18,22 +18,24 @@
 
 (in-package :draw-something-clog)
 
-(defun flop-y (y height)
+(defparameter +width+ 7680)
+(defparameter +height+ 4320)
+
+(defun flop-y (y)
   "Invert the y-co-ordinate."
-  (- height y))
+  (- +height+ y))
 
 (defun draw-poly-points (cx canvas poly)
   "Draw the polygon as a path in cx."
   (begin-path cx)
-  (let ((height (height canvas))
-        (points (ds::points poly)))
+  (let ((points (ds::points poly)))
     (move-to cx
              (round (ds::x (aref points 0)))
-             (flop-y (round (ds::y (aref points 0))) height))
+             (flop-y (round (ds::y (aref points 0)))))
     (loop for i from 1 below (length points)
           do (line-to cx
                       (round (ds::x (aref points i)))
-                      (flop-y (round (ds::y (aref points i))) height)))))
+                      (flop-y (round (ds::y (aref points i))))))))
 
 (defun fill-poly (cx canvas poly fill)
   "Draw and fillthe polygon as a path in cx."
@@ -52,6 +54,7 @@
 
 (defun on-new-window (body)
   (setf (title (html-document body)) "draw-something")
+  ;; Centre the page content (the canvas)
   (set-styles body
               '(("border" 0)
                 ("margin" 0)
@@ -61,12 +64,16 @@
                 ("display" "flex")
                 ("align-items" "center")
                 ("justify-content" "center")))
-  (let* ((canvas  (create-canvas body :width 1280 :height 768))
+  (let* ((canvas  (create-canvas body :width +width+ :height +height+))
          (cx      (create-context2d canvas))
          (drawing (ds:draw-something)))
+    ;; Scale the canvas to the page
+    (set-styles canvas
+                '(("width" "100vw"
+                   "height" "56.25vw")))
     ;; Draw the background
     (setf (fill-style cx) (ds::colour-to-rgb-hex (ds::ground drawing)))
-    (fill-rect cx 0 0 (width canvas) (height canvas))
+    (fill-rect cx 0 0 +width+ +height+)
     (setf (line-cap cx) :round)
     (setf (line-join cx) :round)
     ;; Draw each form 
@@ -79,10 +86,10 @@
                  (begin-path cx)
                  (move-to cx
                           (ds::x (ds::from line))
-                          (flop-y (ds::y (ds::from line)) (height canvas)))
+                          (flop-y (ds::y (ds::from line))))
                  (line-to cx
                           (ds::x (ds::to line))
-                          (flop-y (ds::y (ds::to line)) (height canvas)))
+                          (flop-y (ds::y (ds::to line))))
                  (path-stroke cx)
                  (sleep 0.01)))
       (sleep 0.5)
@@ -92,10 +99,10 @@
         (begin-path cx)
         (move-to cx
                  (round (ds::x (ds::from line)))
-                 (round (flop-y (ds::y (ds::from line)) (height canvas))))
+                 (round (flop-y (ds::y (ds::from line)))))
         (line-to cx
                  (round (ds::x (ds::to line)))
-                 (round (flop-y (ds::y (ds::to line)) (height canvas))))
+                 (round (flop-y (ds::y (ds::to line)))))
         (path-stroke cx)
         (sleep 0.01))
       (sleep 0.5)
