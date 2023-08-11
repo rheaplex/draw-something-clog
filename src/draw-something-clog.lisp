@@ -25,7 +25,7 @@
   "Invert the y-co-ordinate."
   (- +height+ y))
 
-(defun draw-poly-points (cx canvas poly)
+(defun draw-poly-points (cx poly)
   "Draw the polygon as a path in cx."
   (begin-path cx)
   (let ((points (ds::points poly)))
@@ -37,41 +37,23 @@
                       (round (ds::x (aref points i)))
                       (flop-y (round (ds::y (aref points i))))))))
 
-(defun fill-poly (cx canvas poly fill)
+(defun fill-poly (cx poly fill)
   "Draw and fillthe polygon as a path in cx."
   (setf (stroke-style cx) :none)
   (setf (fill-style cx) fill)
-  (draw-poly-points cx canvas poly)
+  (draw-poly-points cx poly)
   (path-fill cx))
 
-(defun stroke-poly (cx poly canvas stroke-style stroke-width)
+(defun stroke-poly (cx poly stroke-style stroke-width)
   "Draw and stroke the polygon as a path in cx."
   (setf (fill-style cx) :none)
   (setf (line-width cx) stroke-width)
   (setf (stroke-style cx) stroke-style)
-  (draw-poly-points cx canvas poly)
+  (draw-poly-points cx poly)
   (path-stroke cx))
 
-(defun on-new-window (body)
-  (setf (title (html-document body)) "draw-something")
-  ;; Centre the page content (the canvas)
-  (set-styles body
-              '(("border" 0)
-                ("margin" 0)
-                ("padding" 0)
-                ("cursor" "none")
-                ("height" "100vh")
-                ("display" "flex")
-                ("align-items" "center")
-                ("justify-content" "center")))
-  (let* ((nodelay (not (equal (search "nodelay" (url (location body))) nil)))
-         (canvas  (create-canvas body :width +width+ :height +height+))
-         (cx      (create-context2d canvas))
-         (drawing (ds:draw-something)))
-    ;; Scale the canvas to the page
-    (set-styles canvas
-                '(("width" "100vw"
-                   "height" "56.25vw")))
+(defun draw (cx nodelay)
+  (let ((drawing (ds:draw-something)))
     ;; Draw the background
     (setf (fill-style cx) (ds::colour-to-rgb-hex (ds::ground drawing)))
     (fill-rect cx 0 0 +width+ +height+)
@@ -113,20 +95,48 @@
         (sleep 0.5))
       ;; Draw the polygon fill
       (fill-poly cx
-                 canvas
                  (ds::outline form)
                  (ds::colour-to-rgb-hex(ds::fill-colour form)))
       (when (ds::stroke-colour form)
         (stroke-poly cx
-                     canvas
                      (ds::outline form)
                      (ds::colour-to-rgb-hex (ds::stroke-colour form))
                      (ds::stroke-width form)))
       (unless nodelay
-        (sleep 0.25))))
-  ;; Pause for a minute then reload the page
-  (sleep 60)
-  (reload (location body)))
+        (sleep 0.25)))))
+
+(defun on-new-window (body)
+  (setf (title (html-document body)) "draw-something")
+  ;; Centre the page content (the canvas)
+  (set-styles body
+              '(("border" 0)
+                ("margin" 0)
+                ("padding" 0)
+                ("cursor" "none")
+                ("height" "100vh")
+                ("display" "flex")
+                ("align-items" "center")
+                ("justify-content" "center")))
+  (let* ((nodelay   (not (equal (search "nodelay" (url (location body))) nil)))
+         (canvas    (create-canvas body :width +width+ :height +height+))
+         (cx        (create-context2d canvas))
+         (interrupt nil))
+    ;; Scale the canvas to the page
+    (set-styles canvas
+                '(("width" "100vw"
+                   "height" "56.25vw")))
+    (set-on-key-press body
+                      (lambda (obj data)
+                        (declare (ignore obj data))
+                        (setf interrupt t)))
+    ;; Loop forever, making a new drawing once per minute or so
+    (loop
+      do (draw cx nodelay)
+         (loop for i from 0 below 60
+               if (equal interrupt t)
+                 do (return)
+               do (sleep 1))
+         (setf interrupt nil))))
 
 (defun start ()
   "Start the server."
