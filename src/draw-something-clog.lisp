@@ -64,7 +64,8 @@
                 ("display" "flex")
                 ("align-items" "center")
                 ("justify-content" "center")))
-  (let* ((canvas  (create-canvas body :width +width+ :height +height+))
+  (let* ((nodelay (not (equal (search "nodelay" (url (location body))) nil)))
+         (canvas  (create-canvas body :width +width+ :height +height+))
          (cx      (create-context2d canvas))
          (drawing (ds:draw-something)))
     ;; Scale the canvas to the page
@@ -91,8 +92,10 @@
                           (ds::x (ds::to line))
                           (flop-y (ds::y (ds::to line))))
                  (path-stroke cx)
-                 (sleep 0.01)))
-      (sleep 0.5)
+                 (unless nodelay
+                   (sleep 0.01))))
+      (unless nodelay
+        (sleep 0.5))
       ;; Draw the pen outline to show path construction
       (ds::do-poly-lines ((ds::outline form) line)
         (setf (stroke-style cx) (ds::colour-to-rgb-hex (ds::fill-colour form)))
@@ -104,8 +107,10 @@
                  (round (ds::x (ds::to line)))
                  (round (flop-y (ds::y (ds::to line)))))
         (path-stroke cx)
-        (sleep 0.01))
-      (sleep 0.5)
+        (unless nodelay
+          (sleep 0.01)))
+      (unless nodelay
+        (sleep 0.5))
       ;; Draw the polygon fill
       (fill-poly cx
                  canvas
@@ -117,7 +122,8 @@
                      (ds::outline form)
                      (ds::colour-to-rgb-hex (ds::stroke-colour form))
                      (ds::stroke-width form)))
-      (sleep 0.25)))
+      (unless nodelay
+        (sleep 0.25))))
   ;; Pause for a minute then reload the page
   (sleep 60)
   (reload (location body)))
