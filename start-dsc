@@ -1,0 +1,1 @@
+ros run -s draw-something-clog -e '(draw-something-clog:start)'

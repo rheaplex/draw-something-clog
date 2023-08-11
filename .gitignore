@@ -1,0 +1,7 @@
+*~
+\.#*
+*.fasl
+*.svg
+*.png
+.DS_Store
+drawings/
