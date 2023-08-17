@@ -20,6 +20,7 @@
 
 (defparameter +width+ 7680)
 (defparameter +height+ 4320)
+(defparameter +savedir+ "/var/www/html/drawings")
 
 (defun flop-y (y)
   "Invert the y-co-ordinate."
@@ -52,8 +53,30 @@
   (draw-poly-points cx poly)
   (path-stroke cx))
 
+(defun save-dir-path (savedir time)
+  "Use subdirectories for each day of drawings to hackily paginate."
+  (multiple-value-bind (seconds minutes hours date month year)
+      (decode-universal-time time)
+    (declare (ignorable seconds minutes hours))
+    (let ((subdir (format nil  "~2,,,'0@A-~2,,,'0@A-~2,,,'0@A"
+                          year month date)))
+      (make-pathname :directory
+                     (list :relative savedir subdir)))))
+
+(defun save-file-name (time)
+  (multiple-value-bind (seconds minutes hours date month year)
+      (decode-universal-time time)
+    (declare (ignorable date month year))
+    (format nil  "~2,,,'0@A-~2,,,'0@A-~2,,,'0@A"
+                            hours minutes seconds)))
+
 (defun draw (cx nodelay)
-  (let ((drawing (ds:draw-something)))
+  (let* ((now (get-universal-time))
+         (savesubdir (save-dir-path +savedir+ now))
+         (savefilename (save-file-name now))
+         (drawing (ds:draw-something :randseed now
+                                     :savedir savesubdir
+                                     :filename savefilename)))
     ;; Draw the background
     (setf (fill-style cx) (ds::colour-to-rgb-hex (ds::ground drawing)))
     (fill-rect cx 0 0 +width+ +height+)
@@ -117,6 +140,7 @@
                 ("display" "flex")
                 ("align-items" "center")
                 ("justify-content" "center")))
+  ;;FIXME: switch to form-get-data, which will return ((nodelay))
   (let* ((nodelay   (not (equal (search "nodelay" (url (location body))) nil)))
          (canvas    (create-canvas body :width +width+ :height +height+))
          (cx        (create-context2d canvas))
@@ -125,6 +149,11 @@
     (set-styles canvas
                 '(("width" "100vw"
                    "height" "56.25vw")))
+    (setf (font-style cx) "bold 20vh sans-serif")
+    (fill-text cx
+               "draw-something is connected and initalizing, please wait 2 minutes..."
+               10
+               (/ +height+ 2))
     (set-on-key-press body
                       (lambda (obj data)
                         (declare (ignore obj data))
@@ -139,6 +168,7 @@
          (setf interrupt nil))))
 
 (defun start ()
-  "Start the server."
+  "Start the server in test mode."
+  (setf +savedir+ "/tmp")
   (initialize 'on-new-window)
   (open-browser))
